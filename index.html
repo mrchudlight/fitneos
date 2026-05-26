@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitOS — Personal Fitness Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c27;--border:#2a2a3a;
+  --accent:#c8f05a;--accent2:#5af0c8;--accent3:#f05a8c;
+  --text:#f0f0f8;--muted:#7a7a9a;
+  --run:#5af0c8;--soccer:#f0c85a;--crossfit:#f05a8c;--rest:#7a7aaa;
+}
+body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;overflow-x:hidden}
+.mono{font-family:'DM Mono',monospace}
+.shell{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+@media(max-width:600px){.shell{grid-template-columns:1fr}.nav{flex-direction:row;height:56px;overflow-x:auto;padding:0 8px;position:fixed;bottom:0;left:0;right:0;z-index:50;border-right:none;border-top:1px solid var(--border)}.nav-logo{display:none}.main{padding:16px 12px 72px}}
+.nav{background:var(--surface);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.nav-logo{padding:0 20px 24px;font-size:18px;font-weight:800;letter-spacing:-0.5px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.nav-logo span{color:var(--accent)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);transition:all .15s;border-left:2px solid transparent;letter-spacing:0.5px;text-transform:uppercase;white-space:nowrap}
+.nav-item:hover{color:var(--text);background:var(--surface2)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(200,240,90,0.05)}
+@media(max-width:600px){.nav-item{border-left:none;border-bottom:2px solid transparent;padding:8px 12px;font-size:11px}.nav-item.active{border-left-color:transparent;border-bottom-color:var(--accent)}}
+.nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.main{padding:32px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+h1{font-size:28px;font-weight:800;letter-spacing:-1px;margin-bottom:4px}
+h2{font-size:18px;font-weight:700;letter-spacing:-0.3px;margin-bottom:16px}
+.sub{color:var(--muted);font-size:13px;font-family:'DM Mono',monospace;margin-bottom:28px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:600px){.grid2,.grid3,.grid4{grid-template-columns:1fr 1fr}}
+.metric{background:var(--surface2);border-radius:10px;padding:16px;border:1px solid var(--border)}
+.metric-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.metric-val{font-size:26px;font-weight:800;letter-spacing:-1px}
+.metric-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px}
+.badge-run{background:rgba(90,240,200,0.1);color:var(--run);border:1px solid rgba(90,240,200,0.2)}
+.badge-soccer{background:rgba(240,200,90,0.1);color:var(--soccer);border:1px solid rgba(240,200,90,0.2)}
+.badge-crossfit{background:rgba(240,90,140,0.1);color:var(--crossfit);border:1px solid rgba(240,90,140,0.2)}
+.badge-rest{background:rgba(122,122,170,0.1);color:var(--rest);border:1px solid rgba(122,122,170,0.2)}
+.week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px}
+.day-cell{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .15s}
+.day-cell:hover{border-color:var(--accent)}
+.day-cell.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.day-cell .day-name{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.day-cell .day-num{font-size:16px;font-weight:800;margin-bottom:6px}
+.day-cell .day-act{width:8px;height:8px;border-radius:50%;margin:0 auto}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:480px){.form-row{grid-template-columns:1fr}}
+.form-group{display:flex;flex-direction:column;gap:6px}
+label{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:'Syne',sans-serif;font-size:14px;outline:none;transition:border .15s;width:100%}
+input:focus,select:focus{border-color:var(--accent)}
+select option{background:var(--surface2)}
+textarea{resize:vertical;min-height:70px}
+.btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;transition:all .15s;letter-spacing:0.3px}
+.btn-primary{background:var(--accent);color:#0a0a0f}
+.btn-primary:hover{background:#d4f566;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text);border-color:var(--text)}
+.btn-sm{padding:6px 14px;font-size:12px}
+.supp-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.supp-row:last-child{border-bottom:none}
+.supp-name{font-weight:700;font-size:14px}
+.supp-detail{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-top:2px}
+.check-btn{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;color:transparent;font-size:14px;font-weight:700;flex-shrink:0}
+.check-btn.checked{background:var(--accent);border-color:var(--accent);color:#0a0a0f}
+.check-btn:hover{border-color:var(--accent)}
+.act-toggle{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.act-tag{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);transition:all .15s}
+.act-tag.sel-run{background:rgba(90,240,200,0.1);color:var(--run);border-color:var(--run)}
+.act-tag.sel-soccer{background:rgba(240,200,90,0.1);color:var(--soccer);border-color:var(--soccer)}
+.act-tag.sel-crossfit{background:rgba(240,90,140,0.1);color:var(--crossfit);border-color:var(--crossfit)}
+.act-tag.sel-rest{background:rgba(122,122,170,0.1);color:var(--rest);border-color:var(--rest)}
+.act-tag:hover{border-color:var(--muted);color:var(--text)}
+.score-ring{position:relative;width:120px;height:120px;margin:0 auto 16px}
+.score-ring svg{transform:rotate(-90deg)}
+.score-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.score-num{font-size:28px;font-weight:800;color:var(--accent)}
+.score-lbl{font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:100px;margin-bottom:8px}
+.bar{flex:1;border-radius:4px 4px 0 0;transition:all .3s;cursor:pointer;min-width:0}
+.bar:hover{filter:brightness(1.2)}
+.bar-labels{display:flex;gap:8px;margin-top:4px}
+.bar-lbl{flex:1;text-align:center;font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase}
+.insight{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.insight:last-child{border-bottom:none}
+.insight-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.insight-text{font-size:13px;line-height:1.5}
+.insight-text strong{color:var(--accent)}
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.toast{position:fixed;bottom:80px;right:24px;background:var(--accent);color:#0a0a0f;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;transform:translateY(80px);opacity:0;transition:all .3s;z-index:100;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.divider{height:1px;background:var(--border);margin:20px 0}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:0.4}
+.empty-text{font-size:13px;font-family:'DM Mono',monospace}
+.section-title{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.full-width{grid-column:1/-1}
+.flex{display:flex;align-items:center;gap:8px}
+.flex-between{display:flex;align-items:center;justify-content:space-between}
+/* HealthKit banner */
+.hk-banner{background:rgba(200,240,90,0.08);border:1px solid rgba(200,240,90,0.25);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;font-size:13px}
+.hk-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="nav">
+    <div class="nav-logo">FIT<span>OS</span></div>
+    <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard"><div class="nav-dot" style="background:#c8f05a"></div>Dashboard</div>
+    <div class="nav-item" onclick="showPage('log')" data-page="log"><div class="nav-dot" style="background:#5af0c8"></div>Log Day</div>
+    <div class="nav-item" onclick="showPage('supplements')" data-page="supplements"><div class="nav-dot" style="background:#f0c85a"></div>Supplements</div>
+    <div class="nav-item" onclick="showPage('history')" data-page="history"><div class="nav-dot" style="background:#7a7aaa"></div>History</div>
+    <div class="nav-item" onclick="showPage('insights')" data-page="insights"><div class="nav-dot" style="background:#f05a8c"></div>Insights</div>
+  </nav>
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <h1>Dashboard</h1>
+      <p class="sub" id="dash-date"></p>
+      <div class="grid4" id="dash-metrics">
+        <div class="metric"><div class="metric-label">Weekly load</div><div class="metric-val" id="met-load">0</div><div class="metric-sub">sessions this week</div></div>
+        <div class="metric"><div class="metric-label">Avg sleep</div><div class="metric-val" id="met-sleep">—</div><div class="metric-sub">hrs last 7 days</div></div>
+        <div class="metric"><div class="metric-label">Supp adherence</div><div class="metric-val" id="met-supp">—</div><div class="metric-sub">this week</div></div>
+        <div class="metric"><div class="metric-label">Health score</div><div class="metric-val" id="met-score" style="color:var(--accent)">—</div><div class="metric-sub">composite</div></div>
+      </div>
+      <div class="week-strip" id="week-strip"></div>
+      <div class="grid2">
+        <div class="card">
+          <div class="sec-header"><h2 style="margin:0;font-size:15px">Activity mix</h2><span class="mono" style="font-size:11px;color:var(--muted)">7 days</span></div>
+          <div class="bar-chart" id="act-bars"><div style="flex:1;text-align:center;color:var(--muted);font-size:12px;align-self:center">Log some days to see activity mix</div></div>
+          <div class="bar-labels" id="act-bar-labels"></div>
+        </div>
+        <div class="card">
+          <div class="sec-header"><h2 style="margin:0;font-size:15px">Sleep trend</h2><span class="mono" style="font-size:11px;color:var(--muted)">7 days</span></div>
+          <div class="bar-chart" id="sleep-bars"><div style="flex:1;text-align:center;color:var(--muted);font-size:12px;align-self:center">Log sleep to see trend</div></div>
+          <div class="bar-labels" id="sleep-bar-labels"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:15px">Today's supplement plan</h2>
+        <div id="today-supps"><div class="empty"><div class="empty-icon">💊</div><div class="empty-text">Log today's activity to see your supplement plan</div></div></div>
+      </div>
+    </div>
+
+    <!-- LOG DAY -->
+    <div id="page-log" class="page">
+      <h1>Log Day</h1>
+      <p class="sub">Record your training, sleep & recovery</p>
+      <div id="hk-banner-container"></div>
+      <div class="card" style="margin-bottom:16px">
+        <h2 style="font-size:15px">Activity</h2>
+        <div class="form-group" style="margin-bottom:16px"><label>Date</label><input type="date" id="log-date"></div>
+        <div class="form-group" style="margin-bottom:16px">
+          <label>Activities today</label>
+          <div class="act-toggle">
+            <div class="act-tag" data-act="run" onclick="toggleAct(this)">🏃 Run</div>
+            <div class="act-tag" data-act="soccer" onclick="toggleAct(this)">⚽ Soccer</div>
+            <div class="act-tag" data-act="crossfit" onclick="toggleAct(this)">🏋️ CrossFit</div>
+            <div class="act-tag" data-act="rest" onclick="toggleAct(this)">😴 Rest day</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Duration (min)</label><input type="number" id="log-duration" placeholder="60" min="0" max="300"></div>
+          <div class="form-group"><label>Intensity (1–10)</label><input type="number" id="log-intensity" placeholder="7" min="1" max="10"></div>
+        </div>
+        <div class="form-group"><label>Notes</label><textarea id="log-notes" placeholder="How did it feel? Any PRs?"></textarea></div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <h2 style="font-size:15px">Sleep & Recovery</h2>
+        <div class="form-row">
+          <div class="form-group"><label>Sleep (hrs)</label><input type="number" id="log-sleep" placeholder="7.5" min="0" max="14" step="0.5"></div>
+          <div class="form-group"><label>Sleep quality (1–10)</label><input type="number" id="log-sleepq" placeholder="8" min="1" max="10"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>HRV (ms)</label><input type="number" id="log-hrv" placeholder="62" min="0" max="200"></div>
+          <div class="form-group"><label>Resting HR (bpm)</label><input type="number" id="log-rhr" placeholder="58" min="30" max="120"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Energy level (1–10)</label><input type="number" id="log-energy" placeholder="8" min="1" max="10"></div>
+          <div class="form-group"><label>Mood (1–10)</label><input type="number" id="log-mood" placeholder="8" min="1" max="10"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="sec-header"><h2 style="margin:0;font-size:15px">Supplements taken</h2><span class="mono" style="font-size:11px;color:var(--muted)">based on your activity</span></div>
+        <div id="log-supp-list"><div class="empty"><div class="empty-text">Select an activity above to see suggested supplements</div></div></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:14px" onclick="saveLog()">Save Day →</button>
+    </div>
+
+    <!-- SUPPLEMENTS -->
+    <div id="page-supplements" class="page">
+      <h1>Supplements</h1>
+      <p class="sub">Configure your stack by activity type</p>
+      <div class="act-toggle" style="margin-bottom:20px">
+        <div class="act-tag sel-run" data-stab="run" onclick="switchSuppTab(this)">🏃 Run</div>
+        <div class="act-tag" data-stab="soccer" onclick="switchSuppTab(this)">⚽ Soccer</div>
+        <div class="act-tag" data-stab="crossfit" onclick="switchSuppTab(this)">🏋️ CrossFit</div>
+        <div class="act-tag" data-stab="rest" onclick="switchSuppTab(this)">😴 Rest</div>
+        <div class="act-tag" data-stab="combo" onclick="switchSuppTab(this)">🔥 Combo</div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="sec-header"><h2 style="margin:0;font-size:15px" id="supp-tab-title">Run stack</h2><button class="btn btn-ghost btn-sm" onclick="openAddSupp()">+ Add</button></div>
+        <div id="supp-list"></div>
+      </div>
+      <div id="add-supp-form" style="display:none" class="card">
+        <h2 style="font-size:15px">Add supplement</h2>
+        <div class="form-row">
+          <div class="form-group"><label>Name</label><input type="text" id="supp-name" placeholder="Creatine"></div>
+          <div class="form-group"><label>Dose</label><input type="text" id="supp-dose" placeholder="5g"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Timing</label><select id="supp-timing"><option>Pre-workout</option><option>During</option><option>Post-workout</option><option>Morning</option><option>Evening</option><option>With food</option></select></div>
+          <div class="form-group"><label>Purpose</label><input type="text" id="supp-purpose" placeholder="Performance"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-primary btn-sm" onclick="saveSupp()">Add supplement</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('add-supp-form').style.display='none'">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="page-history" class="page">
+      <h1>History</h1>
+      <p class="sub">All your logged days</p>
+      <div id="history-list"></div>
+    </div>
+
+    <!-- INSIGHTS -->
+    <div id="page-insights" class="page">
+      <h1>Insights</h1>
+      <p class="sub">How your habits connect</p>
+      <div class="grid2" style="margin-bottom:16px">
+        <div class="card">
+          <div class="score-ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#2a2a3a" stroke-width="10"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#c8f05a" stroke-width="10" stroke-dasharray="314" stroke-dashoffset="94" id="score-circle" stroke-linecap="round"/>
+            </svg>
+            <div class="score-center"><div class="score-num" id="ins-score">—</div><div class="score-lbl">score</div></div>
+          </div>
+          <div style="text-align:center">
+            <div class="section-title">Overall fitness score</div>
+            <div id="score-breakdown" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">Log more days for a score</div>
+          </div>
+        </div>
+        <div class="card">
+          <h2 style="font-size:15px">Key correlations</h2>
+          <div id="insights-list"><div class="empty"><div class="empty-text">Log at least 3 days to see patterns</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:15px">Your patterns</h2>
+        <div id="patterns-grid" class="grid3" style="margin:0"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ACTS=['run','soccer','crossfit','rest'];
+const ACT_COLORS={run:'#5af0c8',soccer:'#f0c85a',crossfit:'#f05a8c',rest:'#7a7aaa'};
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+let state={
+  logs:[],
+  supplements:{
+    run:[
+      {id:1,name:'Electrolytes',dose:'1 tablet',timing:'Pre-workout',purpose:'Hydration'},
+      {id:2,name:'Beta-Alanine',dose:'3.2g',timing:'Pre-workout',purpose:'Endurance'},
+      {id:3,name:'BCAAs',dose:'10g',timing:'During',purpose:'Muscle protection'},
+      {id:4,name:'Magnesium',dose:'300mg',timing:'Evening',purpose:'Recovery'},
+    ],
+    soccer:[
+      {id:5,name:'Caffeine',dose:'200mg',timing:'Pre-workout',purpose:'Focus & energy'},
+      {id:6,name:'Creatine',dose:'5g',timing:'Post-workout',purpose:'Power output'},
+      {id:7,name:'Electrolytes',dose:'1 tablet',timing:'During',purpose:'Hydration'},
+    ],
+    crossfit:[
+      {id:8,name:'Creatine',dose:'5g',timing:'Pre-workout',purpose:'Strength'},
+      {id:9,name:'Whey Protein',dose:'30g',timing:'Post-workout',purpose:'Muscle repair'},
+      {id:10,name:'Caffeine',dose:'200mg',timing:'Pre-workout',purpose:'Performance'},
+      {id:11,name:'Omega-3',dose:'2g',timing:'With food',purpose:'Inflammation'},
+    ],
+    rest:[
+      {id:12,name:'Magnesium Glycinate',dose:'400mg',timing:'Evening',purpose:'Sleep quality'},
+      {id:13,name:'Vitamin D3',dose:'2000IU',timing:'Morning',purpose:'Recovery'},
+      {id:14,name:'Zinc',dose:'15mg',timing:'Evening',purpose:'Hormone balance'},
+    ],
+    combo:[
+      {id:15,name:'Electrolytes',dose:'2 tablets',timing:'Pre-workout',purpose:'Hydration'},
+      {id:16,name:'BCAAs',dose:'10g',timing:'During',purpose:'Endurance'},
+      {id:17,name:'Creatine',dose:'5g',timing:'Post-workout',purpose:'Recovery'},
+      {id:18,name:'Magnesium',dose:'300mg',timing:'Evening',purpose:'Sleep'},
+    ]
+  },
+  currentSuppTab:'run',
+  selectedActs:[]
+};
+
+// --- STORAGE ---
+function loadState(){
+  try{
+    const s=localStorage.getItem('fitneos_v1');
+    if(s){const p=JSON.parse(s);state.logs=p.logs||[];state.supplements=p.supplements||state.supplements;}
+  }catch(e){}
+}
+function saveState(){
+  try{localStorage.setItem('fitneos_v1',JSON.stringify({logs:state.logs,supplements:state.supplements}));}catch(e){}
+}
+
+// --- URL PARAM PREFILL (from iOS Shortcut) ---
+function prefillFromURL(){
+  const p=new URLSearchParams(window.location.search);
+  const hkData={};
+  let hasData=false;
+  if(p.get('sleep')){document.getElementById('log-sleep').value=p.get('sleep');hkData.sleep=p.get('sleep');hasData=true;}
+  if(p.get('hrv')){document.getElementById('log-hrv').value=p.get('hrv');hkData.hrv=p.get('hrv');hasData=true;}
+  if(p.get('rhr')){document.getElementById('log-rhr').value=p.get('rhr');hkData.rhr=p.get('rhr');hasData=true;}
+  if(p.get('workout')){
+    const w=p.get('workout').toLowerCase();
+    hkData.workout=p.get('workout');
+    hasData=true;
+    let matched=null;
+    if(w.includes('run')||w.includes('walk')||w.includes('hike'))matched='run';
+    else if(w.includes('soccer')||w.includes('football'))matched='soccer';
+    else if(w.includes('cross')||w.includes('functional')||w.includes('hiit')||w.includes('strength'))matched='crossfit';
+    if(matched){
+      const tag=document.querySelector(`.act-tag[data-act="${matched}"]`);
+      if(tag)toggleAct(tag);
+    }
+  }
+  if(p.get('duration')){document.getElementById('log-duration').value=p.get('duration');hkData.duration=p.get('duration');hasData=true;}
+  if(p.get('date')){document.getElementById('log-date').value=p.get('date');}
+
+  if(hasData){
+    showPage('log');
+    const banner=document.getElementById('hk-banner-container');
+    const fields=Object.entries(hkData).map(([k,v])=>`<strong>${k}</strong>: ${v}`).join(' &nbsp;·&nbsp; ');
+    banner.innerHTML=`<div class="hk-banner"><div class="hk-dot"></div><span style="font-family:'DM Mono',monospace;font-size:12px">Apple Health synced &nbsp;—&nbsp; ${fields}</span></div>`;
+    // clean URL without reload
+    window.history.replaceState({},'',window.location.pathname);
+  }
+}
+
+// --- INIT ---
+function init(){
+  loadState();
+  const today=new Date();
+  document.getElementById('log-date').value=today.toISOString().split('T')[0];
+  document.getElementById('dash-date').textContent=today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  prefillFromURL();
+  renderDashboard();
+  renderSuppTab();
+  renderHistory();
+  renderInsights();
+}
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelector(`[data-page="${p}"]`)?.classList.add('active');
+  if(p==='dashboard')renderDashboard();
+  if(p==='supplements')renderSuppTab();
+  if(p==='history')renderHistory();
+  if(p==='insights')renderInsights();
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// --- WEEK STRIP ---
+function renderWeekStrip(){
+  const strip=document.getElementById('week-strip');strip.innerHTML='';
+  const today=new Date();
+  for(let i=6;i>=0;i--){
+    const d=new Date(today);d.setDate(today.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    const log=state.logs.find(l=>l.date===ds);
+    const isToday=i===0;
+    const cell=document.createElement('div');
+    cell.className='day-cell'+(isToday?' today':'');
+    const acts=log?log.activities:[];
+    const dotColor=acts.length?(acts.length>1?'#c8f05a':ACT_COLORS[acts[0]]||'#7a7aaa'):'var(--border)';
+    cell.innerHTML=`<div class="day-name">${DAYS[d.getDay()]}</div><div class="day-num">${d.getDate()}</div><div class="day-act" style="background:${dotColor}"></div>${acts.length?`<div style="margin-top:4px">${acts.map(a=>`<span style="display:block;font-size:8px;font-family:'DM Mono',monospace;color:${ACT_COLORS[a]};text-transform:uppercase">${a}</span>`).join('')}</div>`:''}`;
+    strip.appendChild(cell);
+  }
+}
+
+// --- DASHBOARD ---
+function renderDashboard(){
+  renderWeekStrip();
+  const today=new Date();
+  const last7=[];
+  for(let i=6;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);last7.push(d.toISOString().split('T')[0]);}
+  const weekLogs=state.logs.filter(l=>last7.includes(l.date));
+  const sessions=weekLogs.filter(l=>l.activities.length&&!l.activities.includes('rest')).length;
+  document.getElementById('met-load').textContent=sessions;
+  const sleepLogs=weekLogs.filter(l=>l.sleep);
+  const avgSleep=sleepLogs.length?(sleepLogs.reduce((s,l)=>s+parseFloat(l.sleep),0)/sleepLogs.length).toFixed(1):'—';
+  document.getElementById('met-sleep').textContent=avgSleep!=='—'?avgSleep+'h':'—';
+  const suppLogs=weekLogs.filter(l=>l.suppChecks);
+  if(suppLogs.length){
+    const total=suppLogs.reduce((s,l)=>s+(l.suppChecks.total||0),0);
+    const done=suppLogs.reduce((s,l)=>s+(l.suppChecks.done||0),0);
+    document.getElementById('met-supp').textContent=total?Math.round(done/total*100)+'%':'—';
+  }
+  const score=calcScore(weekLogs);
+  document.getElementById('met-score').textContent=score!==null?score:'—';
+  renderActivityBars(weekLogs,last7);
+  renderSleepBars(weekLogs,last7);
+  renderTodaySupps();
+}
+
+function renderActivityBars(weekLogs,last7){
+  const barsEl=document.getElementById('act-bars');const labelsEl=document.getElementById('act-bar-labels');
+  if(!weekLogs.length){barsEl.innerHTML='<div style="flex:1;text-align:center;color:var(--muted);font-size:12px;align-self:center">Log some days to see activity mix</div>';labelsEl.innerHTML='';return;}
+  barsEl.innerHTML='';labelsEl.innerHTML='';
+  const today=new Date();
+  last7.forEach((ds,i)=>{
+    const log=weekLogs.find(l=>l.date===ds);
+    const acts=log?log.activities:[];
+    const intensity=log&&log.intensity?parseInt(log.intensity):(acts.length?6:0);
+    const h=intensity?Math.max(12,intensity*9):6;
+    const color=acts.length>1?'#c8f05a':(acts.length?ACT_COLORS[acts[0]]:'var(--border)');
+    const d=new Date(today);d.setDate(today.getDate()-(6-i));
+    barsEl.innerHTML+=`<div class="bar" style="height:${h}px;background:${color};opacity:${acts.length?1:0.3}"></div>`;
+    labelsEl.innerHTML+=`<div class="bar-lbl">${DAYS[d.getDay()]}</div>`;
+  });
+}
+
+function renderSleepBars(weekLogs,last7){
+  const barsEl=document.getElementById('sleep-bars');const labelsEl=document.getElementById('sleep-bar-labels');
+  const hasSleep=weekLogs.some(l=>l.sleep);
+  if(!hasSleep){barsEl.innerHTML='<div style="flex:1;text-align:center;color:var(--muted);font-size:12px;align-self:center">Log sleep to see trend</div>';labelsEl.innerHTML='';return;}
+  barsEl.innerHTML='';labelsEl.innerHTML='';
+  const today=new Date();
+  last7.forEach((ds,i)=>{
+    const log=weekLogs.find(l=>l.date===ds);
+    const sleep=log&&log.sleep?parseFloat(log.sleep):0;
+    const h=sleep?Math.max(8,(sleep/10)*100):4;
+    const color=sleep>=7?'#5af0c8':sleep>=5?'#f0c85a':sleep?'#f05a8c':'var(--border)';
+    const d=new Date(today);d.setDate(today.getDate()-(6-i));
+    barsEl.innerHTML+=`<div class="bar" style="height:${h}px;background:${color};opacity:${sleep?1:0.25}"></div>`;
+    labelsEl.innerHTML+=`<div class="bar-lbl">${DAYS[d.getDay()]}</div>`;
+  });
+}
+
+function renderTodaySupps(){
+  const today=new Date().toISOString().split('T')[0];
+  const todayLog=state.logs.find(l=>l.date===today);
+  const el=document.getElementById('today-supps');
+  if(!todayLog||!todayLog.activities.length){el.innerHTML='<div class="empty"><div class="empty-icon">💊</div><div class="empty-text">Log today\'s activity to see your supplement plan</div></div>';return;}
+  const acts=todayLog.activities;
+  let supps=acts.length>1?state.supplements.combo||[]:state.supplements[acts[0]]||[];
+  if(!supps.length){el.innerHTML='<div class="empty-text" style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:12px;padding:12px 0">No supplements configured for this activity</div>';return;}
+  const checked=todayLog.suppChecks||{};
+  el.innerHTML=supps.map(s=>`<div class="supp-row"><div><div class="supp-name">${s.name}</div><div class="supp-detail">${s.dose} · ${s.timing} · ${s.purpose}</div></div><button class="check-btn ${checked[s.id]?'checked':''}" onclick="toggleTodaySupp(${s.id})">${checked[s.id]?'✓':''}</button></div>`).join('');
+}
+
+function toggleTodaySupp(id){
+  const today=new Date().toISOString().split('T')[0];
+  const log=state.logs.find(l=>l.date===today);
+  if(!log)return;
+  if(!log.suppChecks)log.suppChecks={};
+  log.suppChecks[id]=!log.suppChecks[id];
+  const acts=log.activities;
+  let supps=acts.length>1?(state.supplements.combo||[]):(state.supplements[acts[0]]||[]);
+  log.suppChecks.total=supps.length;
+  log.suppChecks.done=supps.filter(s=>log.suppChecks[s.id]).length;
+  saveState();renderTodaySupps();renderDashboard();
+}
+
+// --- LOG ---
+function toggleAct(el){
+  const act=el.dataset.act;
+  if(act==='rest'){
+    state.selectedActs=state.selectedActs.includes('rest')?[]:['rest'];
+    document.querySelectorAll('.act-tag[data-act]').forEach(t=>{t.className='act-tag';if(t.dataset.act==='rest'&&state.selectedActs.includes('rest'))t.className='act-tag sel-rest';});
+  }else{
+    state.selectedActs=state.selectedActs.filter(a=>a!=='rest');
+    if(state.selectedActs.includes(act))state.selectedActs=state.selectedActs.filter(a=>a!==act);
+    else state.selectedActs.push(act);
+    document.querySelectorAll('.act-tag[data-act]').forEach(t=>{t.className='act-tag';if(state.selectedActs.includes(t.dataset.act))t.className=`act-tag sel-${t.dataset.act}`;});
+  }
+  renderLogSupps();
+}
+
+function renderLogSupps(){
+  const el=document.getElementById('log-supp-list');
+  const acts=state.selectedActs;
+  if(!acts.length){el.innerHTML='<div class="empty"><div class="empty-text">Select an activity above to see suggested supplements</div></div>';return;}
+  let supps=acts.includes('rest')?state.supplements.rest||[]:acts.length>1?state.supplements.combo||[]:state.supplements[acts[0]]||[];
+  if(!supps.length){el.innerHTML='<div class="empty-text" style="padding:12px 0;font-size:12px;font-family:\'DM Mono\',monospace;color:var(--muted)">No supplements configured</div>';return;}
+  el.innerHTML=supps.map(s=>`<div class="supp-row"><div><div class="supp-name">${s.name}</div><div class="supp-detail">${s.dose} · ${s.timing}</div></div><button class="check-btn" id="lsc-${s.id}" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></button></div>`).join('');
+}
+
+function saveLog(){
+  const date=document.getElementById('log-date').value;
+  if(!date){toast('Please select a date');return;}
+  const acts=state.selectedActs.slice();
+  const logSupps={};let suppTotal=0,suppDone=0;
+  let supps=acts.includes('rest')?state.supplements.rest:acts.length>1?state.supplements.combo:state.supplements[acts[0]]||[];
+  if(supps)supps.forEach(s=>{const btn=document.getElementById('lsc-'+s.id);const done=btn&&btn.classList.contains('checked');logSupps[s.id]=done;suppTotal++;if(done)suppDone++;});
+  logSupps.total=suppTotal;logSupps.done=suppDone;
+  const entry={date,activities:acts,duration:document.getElementById('log-duration').value,intensity:document.getElementById('log-intensity').value,notes:document.getElementById('log-notes').value,sleep:document.getElementById('log-sleep').value,sleepQuality:document.getElementById('log-sleepq').value,hrv:document.getElementById('log-hrv').value,rhr:document.getElementById('log-rhr').value,energy:document.getElementById('log-energy').value,mood:document.getElementById('log-mood').value,suppChecks:logSupps,ts:Date.now()};
+  const idx=state.logs.findIndex(l=>l.date===date);
+  if(idx>=0)state.logs[idx]=entry;else state.logs.push(entry);
+  state.logs.sort((a,b)=>b.date.localeCompare(a.date));
+  state.selectedActs=[];
+  document.querySelectorAll('.act-tag').forEach(t=>t.className='act-tag');
+  ['log-duration','log-intensity','log-notes','log-sleep','log-sleepq','log-hrv','log-rhr','log-energy','log-mood'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('log-supp-list').innerHTML='<div class="empty"><div class="empty-text">Select an activity above to see suggested supplements</div></div>';
+  document.getElementById('hk-banner-container').innerHTML='';
+  saveState();toast('Day logged ✓');
+  setTimeout(()=>showPage('dashboard'),600);
+}
+
+// --- SUPPLEMENTS ---
+function switchSuppTab(el){
+  document.querySelectorAll('[data-stab]').forEach(t=>{const tab=t.dataset.stab;t.className='act-tag';if(t===el)t.className=`act-tag sel-${tab==='combo'?'run':tab}`;});
+  state.currentSuppTab=el.dataset.stab;renderSuppTab();
+}
+function renderSuppTab(){
+  const tab=state.currentSuppTab;
+  const titles={run:'Run stack',soccer:'Soccer stack',crossfit:'CrossFit stack',rest:'Rest day stack',combo:'Combo day stack'};
+  document.getElementById('supp-tab-title').textContent=titles[tab]||'Stack';
+  const el=document.getElementById('supp-list');
+  const supps=state.supplements[tab]||[];
+  if(!supps.length){el.innerHTML='<div class="empty"><div class="empty-text">No supplements added yet</div></div>';return;}
+  el.innerHTML=supps.map(s=>`<div class="supp-row"><div><div class="supp-name">${s.name}</div><div class="supp-detail">${s.dose} · ${s.timing} · <span style="color:var(--accent2)">${s.purpose}</span></div></div><button class="btn btn-ghost btn-sm" onclick="deleteSupp(${s.id})" style="padding:4px 10px;color:var(--muted)">✕</button></div>`).join('');
+}
+function openAddSupp(){document.getElementById('add-supp-form').style.display='block';}
+function saveSupp(){
+  const name=document.getElementById('supp-name').value.trim();
+  if(!name){toast('Enter supplement name');return;}
+  const tab=state.currentSuppTab;
+  if(!state.supplements[tab])state.supplements[tab]=[];
+  state.supplements[tab].push({id:Date.now(),name,dose:document.getElementById('supp-dose').value||'',timing:document.getElementById('supp-timing').value,purpose:document.getElementById('supp-purpose').value||''});
+  document.getElementById('supp-name').value='';document.getElementById('supp-dose').value='';document.getElementById('supp-purpose').value='';
+  document.getElementById('add-supp-form').style.display='none';
+  saveState();renderSuppTab();toast('Supplement added ✓');
+}
+function deleteSupp(id){
+  const tab=state.currentSuppTab;
+  state.supplements[tab]=(state.supplements[tab]||[]).filter(s=>s.id!==id);
+  saveState();renderSuppTab();
+}
+
+// --- HISTORY ---
+function renderHistory(){
+  const el=document.getElementById('history-list');
+  if(!state.logs.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No days logged yet</div></div>';return;}
+  el.innerHTML=state.logs.slice(0,30).map(log=>{
+    const d=new Date(log.date+'T12:00:00');
+    const acts=log.activities||[];
+    const suppPct=log.suppChecks&&log.suppChecks.total?Math.round(log.suppChecks.done/log.suppChecks.total*100):null;
+    return`<div class="card" style="margin-bottom:10px"><div class="flex-between"><div><div style="font-weight:700;font-size:15px">${d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</div><div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${acts.length?acts.map(a=>`<span class="badge badge-${a}">${a}</span>`).join(''):'<span class="badge badge-rest">rest</span>'}</div></div><div style="text-align:right">${log.sleep?`<div class="mono" style="font-size:12px;color:var(--muted)">😴 ${log.sleep}h</div>`:''} ${log.hrv?`<div class="mono" style="font-size:12px;color:var(--accent2)">HRV ${log.hrv}</div>`:''} ${log.rhr?`<div class="mono" style="font-size:12px;color:var(--muted)">♥ ${log.rhr}bpm</div>`:''} ${suppPct!==null?`<div class="mono" style="font-size:12px;color:var(--accent)">💊 ${suppPct}%</div>`:''}</div></div>${log.notes?`<div style="margin-top:10px;font-size:13px;color:var(--muted);font-style:italic;border-top:1px solid var(--border);padding-top:10px">"${log.notes}"</div>`:''}</div>`;
+  }).join('');
+}
+
+// --- SCORE ---
+function calcScore(logs){
+  if(!logs||!logs.length)return null;
+  let score=50;
+  const withSleep=logs.filter(l=>l.sleep);
+  if(withSleep.length){const avg=withSleep.reduce((s,l)=>s+parseFloat(l.sleep),0)/withSleep.length;score+=(avg>=7?15:avg>=6?8:0);}
+  const sessions=logs.filter(l=>l.activities.length&&!l.activities.includes('rest')).length;
+  score+=Math.min(sessions*4,20);
+  const withEnergy=logs.filter(l=>l.energy);
+  if(withEnergy.length){const avg=withEnergy.reduce((s,l)=>s+parseInt(l.energy),0)/withEnergy.length;score+=Math.round((avg/10)*10);}
+  const suppLogs=logs.filter(l=>l.suppChecks&&l.suppChecks.total);
+  if(suppLogs.length){const pct=suppLogs.reduce((s,l)=>s+(l.suppChecks.done/l.suppChecks.total),0)/suppLogs.length;score+=Math.round(pct*5);}
+  return Math.min(Math.round(score),99);
+}
+
+// --- INSIGHTS ---
+function renderInsights(){
+  const el=document.getElementById('insights-list');
+  const today=new Date();const last14=[];
+  for(let i=13;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);last14.push(d.toISOString().split('T')[0]);}
+  const logs=state.logs.filter(l=>last14.includes(l.date));
+  const score=calcScore(logs);
+  document.getElementById('ins-score').textContent=score!==null?score:'—';
+  if(score!==null){document.getElementById('score-circle').setAttribute('stroke-dashoffset',(314-(score/100)*314).toString());document.getElementById('score-breakdown').textContent=score>=75?'Looking strong! 🔥':score>=50?'Good momentum':'Keep building habits';}
+  if(logs.length<3){el.innerHTML='<div class="empty"><div class="empty-text">Log at least 3 days to see patterns</div></div>';document.getElementById('patterns-grid').innerHTML='';return;}
+  const insights=[];
+  const withSleep=logs.filter(l=>l.sleep&&l.energy);
+  if(withSleep.length>=2){
+    const hi=withSleep.filter(l=>parseFloat(l.sleep)>=7);const lo=withSleep.filter(l=>parseFloat(l.sleep)<7);
+    if(hi.length&&lo.length){const hiE=hi.reduce((s,l)=>s+parseInt(l.energy),0)/hi.length;const loE=lo.reduce((s,l)=>s+parseInt(l.energy),0)/lo.length;if(hiE>loE)insights.push({color:'#5af0c8',text:`On nights with <strong>7+ hrs sleep</strong>, your energy averages ${hiE.toFixed(1)}/10 vs ${loE.toFixed(1)}/10.`});}
+  }
+  const cfLogs=logs.filter(l=>l.activities.includes('crossfit')&&l.sleep);
+  if(cfLogs.length>=2){const avgSleep=cfLogs.reduce((s,l)=>s+parseFloat(l.sleep),0)/cfLogs.length;insights.push({color:'#f05a8c',text:`Your average sleep after <strong>CrossFit</strong> days is ${avgSleep.toFixed(1)}h.`});}
+  const runDays=logs.filter(l=>l.activities.includes('run'));const nRunDays=logs.filter(l=>!l.activities.includes('run')&&l.activities.length);
+  if(runDays.length&&nRunDays.length){const rM=runDays.filter(l=>l.mood).reduce((s,l,_,a)=>s+parseInt(l.mood)/a.length,0);const nM=nRunDays.filter(l=>l.mood).reduce((s,l,_,a)=>s+parseInt(l.mood)/a.length,0);if(rM&&nM)insights.push({color:'#f0c85a',text:`<strong>Run days</strong> show mood ${rM.toFixed(1)}/10 vs ${nM.toFixed(1)}/10 on other training days.`});}
+  const wHRV=logs.filter(l=>l.hrv&&l.sleep);
+  if(wHRV.length>=3){const avgHRV=wHRV.reduce((s,l)=>s+parseInt(l.hrv),0)/wHRV.length;insights.push({color:'#c8f05a',text:`Your average <strong>HRV</strong> is ${Math.round(avgHRV)}ms over the last 2 weeks.`});}
+  const suppLogs=logs.filter(l=>l.suppChecks&&l.suppChecks.total);
+  if(suppLogs.length){const pct=Math.round(suppLogs.reduce((s,l)=>s+(l.suppChecks.done/l.suppChecks.total),0)/suppLogs.length*100);insights.push({color:'#c8f05a',text:`Supplement adherence over 2 weeks: <strong>${pct}%</strong>.`});}
+  if(!insights.length)insights.push({color:'#7a7aaa',text:'Keep logging — patterns will emerge with more data.'});
+  el.innerHTML=insights.map(i=>`<div class="insight"><div class="insight-dot" style="background:${i.color}"></div><div class="insight-text">${i.text}</div></div>`).join('');
+  const actCounts={};logs.forEach(l=>(l.activities||[]).forEach(a=>actCounts[a]=(actCounts[a]||0)+1));
+  document.getElementById('patterns-grid').innerHTML=[
+    {label:'Run sessions',val:actCounts.run||0,color:'var(--run)'},
+    {label:'Soccer sessions',val:actCounts.soccer||0,color:'var(--soccer)'},
+    {label:'CrossFit sessions',val:actCounts.crossfit||0,color:'var(--crossfit)'},
+  ].map(i=>`<div class="metric"><div class="metric-label" style="color:${i.color}">${i.label}</div><div class="metric-val" style="color:${i.color}">${i.val}</div><div class="metric-sub">last 2 weeks</div></div>`).join('');
+}
+
+init();
+</script>
+</body>
+</html>
